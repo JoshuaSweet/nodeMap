@@ -14,7 +14,6 @@
     <script>
 
 		//initialize some variables
-		var googleMapsApiKey = {apiKey};
 		var markersArray = [];
 		var map;
 		var host = {hostName};
@@ -192,7 +191,7 @@
 
     </script>
     <script async defer
-        src="https://maps.googleapis.com/maps/api/js?key=" + googleMapsApiKey + "&callback=initMap">
+        src="https://maps.googleapis.com/maps/api/js?key={googleMapsApiKey}&callback=initMap">
     </script>
   </body>
 </html>
