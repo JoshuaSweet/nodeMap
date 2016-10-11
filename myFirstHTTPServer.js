@@ -6,6 +6,7 @@ var path = require('path');
 //Lets define a port we want to listen to
 const PORT=8080; 
 
+// Tell express where our resources are located.
 app.use(express.static(path.join(__dirname, '/')));
 
 // Serve the map.
@@ -19,9 +20,9 @@ app.get('/map1/locations', function(req, res) {
   MongoClient.connect(url, function(err, db) {
   assert.equal(null, err);
   
-	  findlocations(db, function(docs) {
+	  findlocations(db, function(locations) {
 		  
-		  res.send(docs);
+		  res.send(locations);
 		  db.close();
 		  
 		});
@@ -72,9 +73,9 @@ var findlocations = function(db, callback) {
   // Get the locations collection
   var collection = db.collection('locations');
   // Find some locations
-  collection.find({}).toArray(function(err, docs) {
+  collection.find({}).toArray(function(err, locations) {
     assert.equal(err, null);
-    callback(docs);
+    callback(locations);
   });
 }
 
