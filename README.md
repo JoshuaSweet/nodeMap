@@ -4,4 +4,5 @@ I decided to use google maps as the context of my project, but there was no agen
 
 If you have node installed and mongo and express installed via npm then you should be able to download this repo, fill in some variables and then be in business.  After download, you will need to fill in the following markers with your local values.
 
-map.html -> {host},{port},{googleMapsApiKey}
+map.html -> {hostName}, {portNumber}, {googleMapsApiKey}
+mapServer.js -> PORT
