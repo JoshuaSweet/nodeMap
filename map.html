@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      #map {
+        height: 400px;
+        width: 100%;
+       }
+    </style>
+  </head>
+  <body>
+    <h3>My Google Maps Demo</h3>
+    <div id="map"></div>
+    <script>
+
+		//initialize some variables
+		var googleMapsApiKey = {apiKey};
+		var markersArray = [];
+		var map;
+		var host = {hostName};
+		var port = {portNumber};
+		
+		/* Removes marker from client side and sends request from server side removal.
+		 * params mongoId
+		 * returns undefined
+		 */
+		function removeMarker( mongoId ) {
+		
+			var http = new XMLHttpRequest();
+			var url = "http://" + host + ":" + port + "/map1/locations/delete/" + mongoId;
+			http.open("POST", url, true);
+			http.onreadystatechange = function() {
+				if ( http.readyState == 4 && http.status == 200 ) {
+				
+					//generate markers				
+					var markerObjectIndex = markersArray.map( function(obj){ return obj.id; } ).indexOf( mongoId );
+					mMarkerObject = markersArray[ markerObjectIndex ];
+					mMarkerObject.marker.setMap(null); 
+					mMarkerObject.marker = null;
+					mMarkerObject.infoWindow.close();
+					mMarkerObject.infoWindow = null;
+					markersArray.slice(markerObjectIndex,1);
+					
+				}
+			}
+			http.send();
+		}
+		
+		/* Sends the api call to get all the locations from the mongodb. When the response is
+		 * received it is parsed and sent to the add<arkersToMap function for processing.
+		 *
+		 * params none
+		 * returns undefined
+		 */
+		function initializeAllStoredLocations() {
+			var http = new XMLHttpRequest();
+			var url = "http://" + host + ":" + port + "/map1/locations";
+			http.open("GET", url, true);
+			http.onreadystatechange = function() {
+			
+				if ( http.readyState == 4 && http.status == 200 ) {
+					
+					//generate markers asynchronously from response string
+					addMarkersToMap( JSON.parse( http.responseText ) );
+					
+				}
+				
+			}
+			http.send();
+		}
+		
+		/* Posts latitude and longitude to server for storage in mongodb.
+		 *
+		 * params latitude longitude
+		 * returns undefined
+		 */
+		function postMarker(latitude, longitude) {
+			var http = new XMLHttpRequest();
+			var url = "http://" + host + ":" + port + "/map1/latitude/" + latitude + "/longitude/" + longitude;
+			http.open("POST", url, true);
+			http.onreadystatechange = function() {
+			
+				if ( http.readyState == 4 && http.status == 200 ) {
+				
+					addMarkersToMap( JSON.parse( http.responseText ) );
+					
+				}
+				
+			}
+			http.send();
+		}
+		
+		/*
+		* Consumes an array of objects with properties id, latitude, longitude. 
+		* Even if you have a single location object
+		* encapsulate it in an array.
+		*/
+		function addMarkersToMap( locationObjectArray ) {
+		
+			locationObjectArray.forEach( function( arrayItem ) {
+				
+				//convert mongodb strings to float coordinates
+				var floatLat = parseFloat(arrayItem.latitude);
+				var floatLng = parseFloat(arrayItem.longitude);
+				var mongoId = arrayItem._id;
+				
+				// Boiler plate marker creation.
+				var marker = new google.maps.Marker({
+				  position: {lat: floatLat, lng: floatLng},
+				  map: map,
+				  label: mongoId
+				});
+				
+				/* make content string with delete href for removing markers
+				 * client side and server side.
+				 */
+				var contentString = mongoId +
+				'<br><br>' +
+				'<a onClick="removeMarker(\'' + mongoId + '\');" href="javascript:void(0);">delete</a>';
+				
+				/* This is the window that pops up when you click a marker.
+				 * It has an 'X' in the top-right corner by default for closing.
+				 * The contentString provides a delete option to remove the marker.
+				 */
+				var infowindow = new google.maps.InfoWindow({
+				  "content": contentString
+				});
+				
+				/* This is for keeping track of all markers and anything referencing
+				 * them. We need to keep track of markers and thing pointing to them
+				 * so that we can efficiently remove references when we want to remove
+				 * markers. Otherwise, although we may remove markers from the screen
+				 * and even from mongo on the backend, they will sit around in memory.
+				 */
+				var markerArrayObject = {
+					"id": mongoId,
+					"marker": marker,
+					"infoWindow": infowindow
+				};
+				
+				// Push the markerArrayObject onto the marker tracking array for easy removal.
+				markersArray.push(markerArrayObject);
+				
+				// Make sure our content window opens when we click the marker.
+				marker.addListener('click', function() {
+					infowindow.open(map,marker);
+				});
+				
+			});
+		}
+	
+		/* Initialize things like the map and stored marker.
+		 * No args.
+		 * Nothing to return.
+		 */
+      function initMap() {
+	  
+		initializeAllStoredLocations();
+	  
+		// Arbitrary initial reference point.
+        var tejas = {lat: 31.71882222408327, lng: -99.4921875};
+		
+		// Boiler plate map creation.
+        map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 4,
+          center: tejas
+        });
+		
+		// Let's pin our reference point with a unique marker.
+        var marker = new google.maps.Marker({
+          position: tejas,
+          map: map
+        });
+		
+		marker.addListener('click', function(event) {
+		   //do something unique for our initial reference point.
+        });
+		
+		// Let's add a click listener so we can put a marker on the map whenever/wherever we click it.
+		map.addListener('click', function( event ) {
+		
+			// Boiler plate location acquisition.
+			var latitude = event.latLng.lat();
+			var longitude = event.latLng.lng();
+			
+			// Got the click location, so let's mark it!
+			postMarker(latitude,longitude);
+			
+        });
+		
+      }
+
+    </script>
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=" + googleMapsApiKey + "&callback=initMap">
+    </script>
+  </body>
+</html>
